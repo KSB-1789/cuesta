@@ -1,0 +1,35 @@
+{
+  "$schema": "https://raw.githubusercontent.com/affinda/everything-claude-code/main/manifests/install-schema.json",
+  "version": "1.0.0",
+  "target": "antigravity",
+  "profile": "developer",
+  "project": {
+    "name": "cuesta",
+    "description": "Personal hands-free control layer for Windows (HeyClicky/Cluely inspired)",
+    "stack": [
+      "electron",
+      "react",
+      "typescript",
+      "vite",
+      "vitest",
+      "mediapipe",
+      "impeccable"
+    ]
+  },
+  "modules": [
+    "rules-core",
+    "agents-core",
+    "commands-core",
+    "platform-configs",
+    "framework-language",
+    "workflow-quality"
+  ],
+  "skills": [
+    "impeccable",
+    "frontend-design-direction",
+    "tdd-workflow",
+    "ecc-recipes",
+    "windows-desktop-e2e",
+    "common-security"
+  ]
+}

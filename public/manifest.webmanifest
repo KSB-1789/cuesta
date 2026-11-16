@@ -1,0 +1,12 @@
+{
+  "name": "Cuesta — Train your own hands-free switch",
+  "short_name": "Cuesta",
+  "start_url": "/?demo",
+  "display": "standalone",
+  "background_color": "#f4efe5",
+  "theme_color": "#111d2d",
+  "description": "A private, personal browser switch that adapts to you.",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,467 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-05T04:21:20.640Z",
+  "title": "Design System: Ward",
+  "extensions": {
+    "colorMeta": {
+      "action-white": {
+        "role": "primary",
+        "displayName": "Action White",
+        "canonical": "oklch(100.0% 0.0000 89.9)",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.9)",
+          "oklch(26% 0.0000 89.9)",
+          "oklch(38% 0.0000 89.9)",
+          "oklch(49% 0.0000 89.9)",
+          "oklch(61% 0.0000 89.9)",
+          "oklch(72% 0.0000 89.9)",
+          "oklch(84% 0.0000 89.9)",
+          "oklch(95% 0.0000 89.9)"
+        ]
+      },
+      "action-white-hover": {
+        "role": "primary",
+        "displayName": "Action White Hover",
+        "canonical": "oklch(97.0% 0.0000 89.9)",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.9)",
+          "oklch(26% 0.0000 89.9)",
+          "oklch(38% 0.0000 89.9)",
+          "oklch(49% 0.0000 89.9)",
+          "oklch(61% 0.0000 89.9)",
+          "oklch(72% 0.0000 89.9)",
+          "oklch(84% 0.0000 89.9)",
+          "oklch(95% 0.0000 89.9)"
+        ]
+      },
+      "signal-green": {
+        "role": "accent",
+        "displayName": "Signal Green",
+        "canonical": "oklch(77.3% 0.1535 163.2)",
+        "tonalRamp": [
+          "oklch(15% 0.1046 163.2)",
+          "oklch(26% 0.1313 163.2)",
+          "oklch(38% 0.1476 163.2)",
+          "oklch(49% 0.1535 163.2)",
+          "oklch(61% 0.1489 163.2)",
+          "oklch(72% 0.1339 163.2)",
+          "oklch(84% 0.1085 163.2)",
+          "oklch(95% 0.0727 163.2)"
+        ]
+      },
+      "signal-green-deep": {
+        "role": "accent",
+        "displayName": "Deep Signal Green",
+        "canonical": "oklch(69.6% 0.1491 162.5)",
+        "tonalRamp": [
+          "oklch(15% 0.1016 162.5)",
+          "oklch(26% 0.1275 162.5)",
+          "oklch(38% 0.1434 162.5)",
+          "oklch(49% 0.1491 162.5)",
+          "oklch(61% 0.1446 162.5)",
+          "oklch(72% 0.1301 162.5)",
+          "oklch(84% 0.1054 162.5)",
+          "oklch(95% 0.0706 162.5)"
+        ]
+      },
+      "console-black": {
+        "role": "neutral",
+        "displayName": "Console Black",
+        "canonical": "oklch(14.5% 0.0000 89.9)",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.9)",
+          "oklch(26% 0.0000 89.9)",
+          "oklch(38% 0.0000 89.9)",
+          "oklch(49% 0.0000 89.9)",
+          "oklch(61% 0.0000 89.9)",
+          "oklch(72% 0.0000 89.9)",
+          "oklch(84% 0.0000 89.9)",
+          "oklch(95% 0.0000 89.9)"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Panel",
+        "canonical": "oklch(20.5% 0.0000 89.9)",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.9)",
+          "oklch(26% 0.0000 89.9)",
+          "oklch(38% 0.0000 89.9)",
+          "oklch(49% 0.0000 89.9)",
+          "oklch(61% 0.0000 89.9)",
+          "oklch(72% 0.0000 89.9)",
+          "oklch(84% 0.0000 89.9)",
+          "oklch(95% 0.0000 89.9)"
+        ]
+      },
+      "panel-inset": {
+        "role": "neutral",
+        "displayName": "Panel Inset",
+        "canonical": "oklch(26.9% 0.0000 89.9)",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.9)",
+          "oklch(26% 0.0000 89.9)",
+          "oklch(38% 0.0000 89.9)",
+          "oklch(49% 0.0000 89.9)",
+          "oklch(61% 0.0000 89.9)",
+          "oklch(72% 0.0000 89.9)",
+          "oklch(84% 0.0000 89.9)",
+          "oklch(95% 0.0000 89.9)"
+        ]
+      },
+      "text-body": {
+        "role": "neutral",
+        "displayName": "Text Body",
+        "canonical": "oklch(87.0% 0.0000 89.9)",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.9)",
+          "oklch(26% 0.0000 89.9)",
+          "oklch(38% 0.0000 89.9)",
+          "oklch(49% 0.0000 89.9)",
+          "oklch(61% 0.0000 89.9)",
+          "oklch(72% 0.0000 89.9)",
+          "oklch(84% 0.0000 89.9)",
+          "oklch(95% 0.0000 89.9)"
+        ]
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "Text Muted",
+        "canonical": "oklch(71.5% 0.0000 89.9)",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.9)",
+          "oklch(26% 0.0000 89.9)",
+          "oklch(38% 0.0000 89.9)",
+          "oklch(49% 0.0000 89.9)",
+          "oklch(61% 0.0000 89.9)",
+          "oklch(72% 0.0000 89.9)",
+          "oklch(84% 0.0000 89.9)",
+          "oklch(95% 0.0000 89.9)"
+        ]
+      },
+      "text-faint": {
+        "role": "neutral",
+        "displayName": "Text Faint",
+        "canonical": "oklch(55.6% 0.0000 89.9)",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.9)",
+          "oklch(26% 0.0000 89.9)",
+          "oklch(38% 0.0000 89.9)",
+          "oklch(49% 0.0000 89.9)",
+          "oklch(61% 0.0000 89.9)",
+          "oklch(72% 0.0000 89.9)",
+          "oklch(84% 0.0000 89.9)",
+          "oklch(95% 0.0000 89.9)"
+        ]
+      },
+      "verified-blue": {
+        "role": "semantic",
+        "displayName": "Verified Blue",
+        "canonical": "oklch(71.4% 0.1434 254.6)",
+        "tonalRamp": [
+          "oklch(15% 0.0977 254.6)",
+          "oklch(26% 0.1227 254.6)",
+          "oklch(38% 0.1379 254.6)",
+          "oklch(49% 0.1434 254.6)",
+          "oklch(61% 0.1391 254.6)",
+          "oklch(72% 0.1251 254.6)",
+          "oklch(84% 0.1014 254.6)",
+          "oklch(95% 0.0679 254.6)"
+        ]
+      },
+      "inferred-purple": {
+        "role": "semantic",
+        "displayName": "Inferred Purple",
+        "canonical": "oklch(72.2% 0.1767 305.5)",
+        "tonalRamp": [
+          "oklch(15% 0.1204 305.5)",
+          "oklch(26% 0.1512 305.5)",
+          "oklch(38% 0.1699 305.5)",
+          "oklch(49% 0.1767 305.5)",
+          "oklch(61% 0.1714 305.5)",
+          "oklch(72% 0.1542 305.5)",
+          "oklch(84% 0.1249 305.5)",
+          "oklch(95% 0.0837 305.5)"
+        ]
+      },
+      "unavailable-amber": {
+        "role": "semantic",
+        "displayName": "Unavailable Amber",
+        "canonical": "oklch(83.7% 0.1644 84.4)",
+        "tonalRamp": [
+          "oklch(15% 0.1121 84.4)",
+          "oklch(26% 0.1407 84.4)",
+          "oklch(38% 0.1581 84.4)",
+          "oklch(49% 0.1644 84.4)",
+          "oklch(61% 0.1595 84.4)",
+          "oklch(72% 0.1435 84.4)",
+          "oklch(84% 0.1162 84.4)",
+          "oklch(95% 0.0779 84.4)"
+        ]
+      },
+      "critical-rose": {
+        "role": "semantic",
+        "displayName": "Critical Rose",
+        "canonical": "oklch(71.9% 0.1690 13.4)",
+        "tonalRamp": [
+          "oklch(15% 0.1152 13.4)",
+          "oklch(26% 0.1446 13.4)",
+          "oklch(38% 0.1625 13.4)",
+          "oklch(49% 0.1690 13.4)",
+          "oklch(61% 0.1639 13.4)",
+          "oklch(72% 0.1474 13.4)",
+          "oklch(84% 0.1195 13.4)",
+          "oklch(95% 0.0800 13.4)"
+        ]
+      },
+      "focus-blue": {
+        "role": "focus",
+        "displayName": "Focus Blue",
+        "canonical": "oklch(62.3% 0.1880 259.8)",
+        "tonalRamp": [
+          "oklch(15% 0.1281 259.8)",
+          "oklch(26% 0.1609 259.8)",
+          "oklch(38% 0.1808 259.8)",
+          "oklch(49% 0.1880 259.8)",
+          "oklch(61% 0.1824 259.8)",
+          "oklch(72% 0.1640 259.8)",
+          "oklch(84% 0.1329 259.8)",
+          "oklch(95% 0.0890 259.8)"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "oklch(100% 0 0 / 0.06)",
+        "tonalRamp": [
+          "rgba(255,255,255,0.03)",
+          "rgba(255,255,255,0.05)",
+          "rgba(255,255,255,0.06)",
+          "rgba(255,255,255,0.08)",
+          "rgba(255,255,255,0.10)",
+          "rgba(255,255,255,0.14)",
+          "rgba(255,255,255,0.20)",
+          "rgba(255,255,255,0.30)"
+        ]
+      },
+      "hairline-strong": {
+        "role": "neutral",
+        "displayName": "Hairline Strong",
+        "canonical": "oklch(100% 0 0 / 0.10)",
+        "tonalRamp": [
+          "rgba(255,255,255,0.05)",
+          "rgba(255,255,255,0.08)",
+          "rgba(255,255,255,0.10)",
+          "rgba(255,255,255,0.12)",
+          "rgba(255,255,255,0.16)",
+          "rgba(255,255,255,0.22)",
+          "rgba(255,255,255,0.30)",
+          "rgba(255,255,255,0.40)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Landing hero only; stops at 60px."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Landing section headings; stops at 36px."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Panel and dialog titles, both surfaces."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Prose, findings copy, and form descriptions."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Evidence states, severities, and machine labels."
+      },
+      "label-dense": {
+        "displayName": "Dense Label",
+        "purpose": "Eyebrows, table headers, and chrome labels at 10px."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Paths, repository names, commands, and retrieved values."
+      },
+      "action": {
+        "displayName": "Action",
+        "purpose": "Button and control text."
+      },
+      "watermark": {
+        "displayName": "Watermark",
+        "purpose": "Footer wordmark only; never content."
+      }
+    },
+    "shadows": [
+      {
+        "name": "panel-rest",
+        "value": "none",
+        "purpose": "Default panels sit flat on the field; depth comes from hairlines."
+      },
+      {
+        "name": "overlay-lift",
+        "value": "0 20px 25px -5px rgba(0,0,0,0.35), 0 8px 10px -6px rgba(0,0,0,0.35)",
+        "purpose": "Popovers, evidence-origin cards, and the hero artifact frame."
+      },
+      {
+        "name": "hero-frame",
+        "value": "0 25px 50px -12px rgba(0,0,0,0.55)",
+        "purpose": "The single framed artifact on the landing hero."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-fast",
+        "value": "150ms cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Hover, border, and color changes on controls."
+      },
+      {
+        "name": "press",
+        "value": "100ms cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Active scale to 0.95 on buttons."
+      },
+      {
+        "name": "scroll",
+        "value": "smooth",
+        "purpose": "In-page anchor navigation."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      },
+      {
+        "name": "2xl",
+        "value": "1536px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "White action control for the single next step on a surface.",
+      "html": "<button class=\"ds-btn-primary\">Audit a Repository Free <span aria-hidden=\"true\">&#8594;</span></button>",
+      "css": ".ds-btn-primary { display:inline-flex; align-items:center; gap:8px; background:#ffffff; color:#0a0a0a; font-family:Geist,system-ui,sans-serif; font-size:14px; font-weight:600; line-height:1.25; padding:12px 24px; border:1px solid transparent; border-radius:12px; cursor:pointer; transition:background-color .15s ease, transform .1s ease; } .ds-btn-primary:hover { background:#f5f5f5; } .ds-btn-primary:active { transform:scale(.95); } .ds-btn-primary:focus-visible { outline:2px solid #3b82f6; outline-offset:2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Panel-backed companion action that never competes with the white primary.",
+      "html": "<button class=\"ds-btn-secondary\">Create Handover Workspace <span aria-hidden=\"true\">&#8250;</span></button>",
+      "css": ".ds-btn-secondary { display:inline-flex; align-items:center; gap:8px; background:#171717; color:#d4d4d4; font-family:Geist,system-ui,sans-serif; font-size:14px; font-weight:500; line-height:1.25; padding:12px 20px; border:1px solid rgba(255,255,255,.10); border-radius:12px; cursor:pointer; transition:background-color .15s ease, border-color .15s ease, transform .1s ease; } .ds-btn-secondary:hover { background:#262626; border-color:rgba(255,255,255,.16); color:#ffffff; } .ds-btn-secondary:active { transform:scale(.95); } .ds-btn-secondary:focus-visible { outline:2px solid #3b82f6; outline-offset:2px; }"
+    },
+    {
+      "name": "Verified Evidence Badge",
+      "kind": "chip",
+      "refersTo": "pill-evidence-verified",
+      "description": "Fixed blue pill for machine-verified evidence; label and hue never change independently.",
+      "html": "<span class=\"ds-badge-verified\"><span class=\"ds-dot\"></span>VERIFIED</span>",
+      "css": ".ds-badge-verified { display:inline-flex; align-items:center; gap:6px; background:rgba(96,165,250,.10); color:#60a5fa; font-family:\"Geist Mono\",ui-monospace,monospace; font-size:11px; font-weight:500; line-height:1.4; letter-spacing:.05em; text-transform:uppercase; padding:2px 8px; border:1px solid rgba(96,165,250,.20); border-radius:9999px; } .ds-badge-verified .ds-dot { width:5px; height:5px; border-radius:9999px; background:currentColor; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "card",
+      "description": "Inset console field with a hairline border and Focus Blue ring only on focus.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">REPOSITORY</span><input class=\"ds-field-input\" type=\"text\" value=\"acme/telemetry-kit\" /></label>",
+      "css": ".ds-field { display:flex; flex-direction:column; gap:6px; font-family:Geist,system-ui,sans-serif; } .ds-field-label { color:#a3a3a3; font-family:\"Geist Mono\",ui-monospace,monospace; font-size:10px; font-weight:500; letter-spacing:.06em; text-transform:uppercase; } .ds-field-input { background:#0a0a0a; color:#ffffff; border:1px solid rgba(255,255,255,.10); border-radius:12px; padding:10px 12px; font-size:14px; line-height:1.5; transition:border-color .15s ease, box-shadow .15s ease; } .ds-field-input::placeholder { color:#525252; } .ds-field-input:focus-visible { outline:none; border-color:rgba(59,130,246,.50); box-shadow:0 0 0 1px rgba(59,130,246,.30); }"
+    },
+    {
+      "name": "Showroom Header",
+      "kind": "nav",
+      "refersTo": "button-secondary",
+      "description": "56px dashed rail header shared by marketing and auth; no capsule, no shadow.",
+      "html": "<header class=\"ds-header\"><div class=\"ds-header-inner\"><span class=\"ds-wordmark\"><span class=\"ds-mark\">W</span>Ward</span><nav class=\"ds-links\"><a href=\"#\">Features</a><a href=\"#\">How It Works</a><a href=\"#\">FAQ</a></nav><button class=\"ds-btn-primary ds-btn-sm\">Get Started</button></div></header>",
+      "css": ".ds-header { border-bottom:1px solid rgba(255,255,255,.05); background:rgba(10,10,10,.80); backdrop-filter:blur(16px); } .ds-header-inner { display:flex; align-items:center; justify-content:space-between; gap:16px; height:56px; padding:0 24px; border-left:1px dashed rgba(255,255,255,.10); border-right:1px dashed rgba(255,255,255,.10); font-family:Geist,system-ui,sans-serif; } .ds-wordmark { display:inline-flex; align-items:center; gap:8px; color:#ffffff; font-size:14px; font-weight:600; letter-spacing:-.01em; } .ds-mark { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:10px; background:#ffffff; color:#0a0a0a; font-size:12px; font-weight:700; } .ds-links { display:flex; gap:24px; } .ds-links a { color:#a3a3a3; font-size:12px; font-weight:500; text-decoration:none; transition:color .15s ease; } .ds-links a:hover { color:#ffffff; } .ds-btn-sm { padding:8px 14px; font-size:12px; }"
+    },
+    {
+      "name": "Landing Panel",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Flat panel sheet: 60% black, hairline border, 16px radius, no shadow by default.",
+      "html": "<div class=\"ds-panel\"><p class=\"ds-panel-eyebrow\">CREDENTIAL STATUS</p><p class=\"ds-panel-title\">Static NPM_TOKEN reference detected</p><p class=\"ds-panel-copy\">Recommend OIDC trusted publishing before transfer.</p></div>",
+      "css": ".ds-panel { background:rgba(23,23,23,.60); border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:24px; font-family:Geist,system-ui,sans-serif; } .ds-panel-eyebrow { margin:0 0 8px; color:#737373; font-family:\"Geist Mono\",ui-monospace,monospace; font-size:10px; font-weight:500; letter-spacing:.06em; text-transform:uppercase; } .ds-panel-title { margin:0; color:#ffffff; font-size:14px; font-weight:600; } .ds-panel-copy { margin:6px 0 0; color:#a3a3a3; font-size:12px; line-height:1.6; }"
+    },
+    {
+      "name": "Section Rail",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Full-bleed section frame with dashed vertical rails and an optional 32px separator band.",
+      "html": "<section class=\"ds-rail\"><div class=\"ds-rail-body\"><p class=\"ds-rail-eyebrow\">VERIFICATION PROTOCOL</p><h2 class=\"ds-rail-title\">Everything maintainers need for clean custody transfers.</h2></div></section>",
+      "css": ".ds-rail { width:100%; border-top:1px dashed rgba(255,255,255,.10); border-bottom:1px dashed rgba(255,255,255,.10); } .ds-rail-body { max-width:1400px; margin:0 auto; padding:48px 24px; border-left:1px dashed rgba(255,255,255,.10); border-right:1px dashed rgba(255,255,255,.10); font-family:Geist,system-ui,sans-serif; } .ds-rail-eyebrow { margin:0 0 8px; color:#737373; font-family:\"Geist Mono\",ui-monospace,monospace; font-size:10px; font-weight:500; letter-spacing:.06em; text-transform:uppercase; } .ds-rail-title { margin:0; max-width:42rem; color:#ffffff; font-size:30px; font-weight:700; line-height:1.15; letter-spacing:-.025em; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Custody Instrument",
+    "overview": "Ward looks like an instrument panel for chain-of-custody, not a marketing site that happens to have a dashboard. The field is near-black, panels are slightly raised sheets of the same darkness, and one-pixel hairlines do the work that shadows would do elsewhere. White carries action and headings; a single green behaves like a status lamp. Everything that came from an API, a file, or a rule engine is set in mono and labeled with its evidence state.",
+    "keyCharacteristics": [
+      "Near-black field with hairline-separated panels",
+      "One white primary action and one green signal",
+      "A fixed four-hue evidence taxonomy: blue verified, purple inferred, emerald owner-confirmed, amber unavailable",
+      "Mono for machine-produced values, sans for human prose",
+      "Full-bleed dashed rails on marketing and auth surfaces"
+    ],
+    "rules": [
+      {
+        "name": "The Signal-Only Green Rule",
+        "body": "Emerald appears on live dots, confirmed evidence, and positive empty states; it never fills a primary button, a hero background, or a decorative gradient.",
+        "section": "colors"
+      },
+      {
+        "name": "The Four-State Hue Rule",
+        "body": "Blue is verified, purple is inferred, emerald is owner-confirmed, and amber is unavailable. The assignments are semantic and permanent.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mono Attribution Rule",
+        "body": "If a value came from an API, a file path, a rule ID, a scan, or a credential variable, set it in Geist Mono. Human prose stays in Geist Sans.",
+        "section": "typography"
+      },
+      {
+        "name": "The Quiet Ceiling Rule",
+        "body": "Display type stops at 60px. Inside the product shell, headings stop at 24px. Hierarchy comes from spacing and weight, not size.",
+        "section": "typography"
+      },
+      {
+        "name": "The Showroom Guardrail",
+        "body": "The landing and auth screens may borrow SaasCN composition, but never evidence hues as decoration; the console never imports marketing chrome.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do pair every finding with its evidence state and a recommended human action in the same card.",
+      "Do use the fixed evidence hues and keep edge styles matched to them.",
+      "Do lead the landing page with a real artifact: a graph or an evidence record.",
+      "Do keep the landing to five content sections after the hero with one job each."
+    ],
+    "donts": [
+      "Don't introduce gradient hero washes, floating 3D shapes, or purple-to-pink SaaS blur.",
+      "Don't fill a primary button with emerald, purple, or blue.",
+      "Don't recolor an evidence state for visual balance or reuse a taxonomy hue as decoration.",
+      "Don't import template filler: customer counts, company logos, testimonials, or adoption metrics.",
+      "Don't center the landing in a narrow column with 100px+ gutters."
+    ]
+  }
+}

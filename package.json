@@ -1,0 +1,60 @@
+{
+  "name": "cuesta",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run",
+    "desktop:run": "npm run build && electron .",
+    "desktop:win": "npm run build && electron-builder --win portable"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^1.2.2",
+    "@vitejs/plugin-react": "latest",
+    "lucide-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "typescript": "latest",
+    "vite": "latest",
+    "vitest": "latest"
+  },
+  "build": {
+    "appId": "com.cuesta.desktop",
+    "productName": "Cuesta",
+    "files": [
+      "dist/**/*",
+      "desktop/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "desktop/keyboard-hook.ps1",
+      "desktop/action-worker.ps1",
+      "desktop/speech-worker.ps1",
+      "desktop/whisper-worker.py"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "Cuesta-${version}-Windows.exe"
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0"
+  }
+}
