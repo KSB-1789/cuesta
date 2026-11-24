@@ -1,6 +1,7 @@
 # Cuesta Resident Neural Dictation & Command Worker (faster-whisper)
-# High-precision local neural ASR matching HeyClicky / Wispr Flow standards.
-# Completely offline, CPU int8 quantized, zero SAPI5 / legacy speech dependencies.
+# High-precision local neural ASR. Completely offline, CPU int8 quantized,
+# zero SAPI5 / legacy speech dependencies. If this worker cannot start, the
+# Electron host automatically falls back to desktop/speech-worker.ps1.
 
 import sys
 import os
@@ -9,14 +10,47 @@ import base64
 import threading
 import queue
 import re
+import traceback
 import numpy as np
 
-# Force UTF-8 I/O
-sys.stdin.reconfigure(encoding="utf-8")
-sys.stdout.reconfigure(encoding="utf-8")
+# Force UTF-8 I/O where supported (fails harmlessly for non-text pipes)
+for stream in (sys.stdin, sys.stdout):
+    try:
+        stream.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
+MODEL_NAME = os.environ.get("CUESTA_WHISPER_MODEL", "small.en")
+LANGUAGE = os.environ.get("CUESTA_WHISPER_LANGUAGE", "en") or None
+
+SAMPLE_RATE = 16000
+BLOCK_SIZE = 1600        # 100ms blocks
+SILENCE_PAUSE_CHUNKS = 6 # ~600ms of silence ends an utterance
+MIN_SPEECH_CHUNKS = 3    # at least 300ms of audio
+MAX_PHRASE_CHUNKS = 180  # hard cap ~18s before segmenting
+
+# Baseline energy gates; raised automatically by the measured noise floor.
+BASE_RMS_THRESH = 0.004
+BASE_PEAK_THRESH = 0.016
+
+# Whisper hallucinations to discard on near-silent utterances
+HALLUCINATIONS = {
+    "thank you", "thanks for watching", "bye", "you",
+    "thank you for watching", "so", "please subscribe", "like and subscribe",
+    "thank you very much", "thanks", "okay", "ok", "yeah",
+}
+
+NOISE_TAG_PATTERN = re.compile(
+    r"[\[(]\s*(music|applause|laughter|silence|inaudible|noise|blank_audio)\s*[\])]",
+    re.IGNORECASE,
+)
+LEADING_FILLER_PATTERN = re.compile(r"^(um+|uh+|erm+|hmm+)[,\s]+", re.IGNORECASE)
+REPEATED_WORD_PATTERN = re.compile(r"\b(\w+)(\s+\1\b){2,}", re.IGNORECASE)
+
 
 def to_b64(text: str) -> str:
     return base64.b64encode((text or "").encode("utf-8")).decode("ascii")
+
 
 def emit(line: str):
     try:
@@ -25,30 +59,46 @@ def emit(line: str):
     except Exception:
         pass
 
-# Whisper hallucinations to discard on near-silent utterances
-HALLUCINATIONS = {
-    "thank you", "thanks for watching", "bye", "you",
-    "thank you for watching", "so", "please subscribe", "like and subscribe",
-}
 
-SAMPLE_RATE = 16000
-BLOCK_SIZE = 1600       # 100ms
-SILENCE_PAUSE_CHUNKS = 7 # ~700ms silence ends an utterance
-MIN_SPEECH_CHUNKS = 3    # at least 300ms
-MAX_PHRASE_CHUNKS = 150  # max 15s per phrase before auto-segmenting
-ENERGY_RMS_THRESH = 0.005
-ENERGY_PEAK_THRESH = 0.018
+def log_err(message: str):
+    try:
+        sys.stderr.write(message + "\n")
+        sys.stderr.flush()
+    except Exception:
+        pass
 
-# Meta commands that bypass dictation mode
-META_COMMANDS = {
-    "stop dictation", "dictation mode", "control mode", "command mode",
-    "pause gestures", "pause all gestures", "resume gestures", "gestures on"
-}
+
+def clean_transcript(raw: str) -> str:
+    """Remove ASR artifacts without changing the user's words."""
+    text = NOISE_TAG_PATTERN.sub(" ", raw or "")
+    text = LEADING_FILLER_PATTERN.sub("", text.strip())
+    text = REPEATED_WORD_PATTERN.sub(r"\1", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    # Collapse an utterance the model repeated verbatim ("Good. Good.")
+    for _ in range(2):
+        words = text.split(" ")
+        half = len(words) // 2
+        if half >= 2 and words[:half] == words[half : half * 2]:
+            text = " ".join(words[:half])
+    return text.strip()
+
+
+def looks_like_hallucination(text: str) -> bool:
+    lower = text.lower().strip(" .!?,")
+    return (
+        not lower
+        or lower in HALLUCINATIONS
+        or lower.startswith("subtitles by")
+        or lower.startswith("subtitle by")
+        or lower.startswith("sous-titres")
+        or lower.startswith("amara.org")
+    )
+
 
 class WhisperHost:
     def __init__(self):
         self.model = None
-        self.current_mode = "dictation" # "dictation" or "control"
+        self.current_mode = "dictation"  # "dictation" or "control"
         self.is_listening = False
         self.audio_queue = queue.Queue()
         self.stream = None
@@ -56,30 +106,45 @@ class WhisperHost:
         self.worker_thread = None
         self.stop_event = threading.Event()
         self.lock = threading.Lock()
+        # Adaptive noise floor: the 25th percentile of recent idle blocks.
+        self.noise_samples = []
+        self.rms_threshold = BASE_RMS_THRESH
+        self.peak_threshold = BASE_PEAK_THRESH
 
     def init_model(self):
+        emit("STATUS:loading")
         try:
             from faster_whisper import WhisperModel
             import sounddevice as sd
-            self.sd = sd
 
-            # Load Systran/faster-whisper-small (already cached locally)
+            self.sd = sd
+            cpu_threads = max(2, min(8, (os.cpu_count() or 4) // 2))
             self.model = WhisperModel(
-                "Systran/faster-whisper-small",
+                MODEL_NAME,
                 device="cpu",
                 compute_type="int8",
-                cpu_threads=4
+                cpu_threads=cpu_threads,
+                download_root=os.environ.get("CUESTA_WHISPER_CACHE") or None,
             )
             emit("READY")
             return True
-        except Exception as e:
-            emit(f"ERR_B64:{to_b64(f'Whisper init failed: {e}')}")
+        except ImportError as exc:
+            missing = getattr(exc, "name", "") or str(exc)
+            emit(
+                "ERR_B64:"
+                + to_b64(
+                    f"Missing Python speech package ({missing}). Run `npm run speech:setup` "
+                    "or `pip install faster-whisper sounddevice numpy`."
+                )
+            )
+            return False
+        except Exception as exc:
+            emit("ERR_B64:" + to_b64(f"Whisper model could not load: {exc}"))
             return False
 
     def audio_callback(self, indata, frames, time_info, status):
         if not self.is_listening:
             return
-        # Copy audio block to processing queue
         self.audio_queue.put(indata.copy().flatten())
 
     def start_listening(self):
@@ -89,15 +154,10 @@ class WhisperHost:
                 return
 
             try:
-                # Clean up any previous thread
                 if self.worker_thread and self.worker_thread.is_alive():
-                    try:
-                        self.worker_thread.join(timeout=1.5)
-                    except Exception:
-                        pass
+                    self.worker_thread.join(timeout=1.5)
                     self.worker_thread = None
 
-                # Flush existing queue
                 while not self.audio_queue.empty():
                     try:
                         self.audio_queue.get_nowait()
@@ -110,7 +170,7 @@ class WhisperHost:
                     channels=1,
                     dtype="float32",
                     blocksize=BLOCK_SIZE,
-                    callback=self.audio_callback
+                    callback=self.audio_callback,
                 )
                 self.stream.start()
                 self.is_listening = True
@@ -119,9 +179,15 @@ class WhisperHost:
                 self.worker_thread.start()
 
                 emit("STATUS:listening")
-            except Exception as e:
+            except Exception as exc:
                 self.is_listening = False
-                emit(f"ERR_B64:{to_b64(f'Microphone error: {e}')}")
+                emit(
+                    "ERR_B64:"
+                    + to_b64(
+                        "Microphone unavailable. Check the default input device in Windows "
+                        f"Sound settings. ({exc})"
+                    )
+                )
 
     def stop_listening(self):
         with self.lock:
@@ -152,63 +218,64 @@ class WhisperHost:
     def set_mode(self, mode: str):
         self.current_mode = "control" if mode.lower() == "control" else "dictation"
 
+    def _calibrate_noise(self, chunk: np.ndarray):
+        rms = float(np.sqrt(np.mean(chunk ** 2)))
+        self.noise_samples.append(rms)
+        if len(self.noise_samples) > 80:
+            self.noise_samples.pop(0)
+        if len(self.noise_samples) < 8:
+            return
+        ordered = sorted(self.noise_samples)
+        floor = ordered[len(ordered) // 4]
+        self.rms_threshold = max(BASE_RMS_THRESH, floor * 2.2)
+        self.peak_threshold = max(BASE_PEAK_THRESH, floor * 4.0)
+
     def _is_speech_chunk(self, chunk: np.ndarray) -> bool:
         if len(chunk) == 0:
             return False
         rms = float(np.sqrt(np.mean(chunk ** 2)))
         peak = float(np.max(np.abs(chunk)))
-        return (rms >= ENERGY_RMS_THRESH or peak >= ENERGY_PEAK_THRESH)
+        return rms >= self.rms_threshold or peak >= self.peak_threshold
 
     def _transcribe_audio(self, audio_data: np.ndarray):
-        if len(audio_data) < (SAMPLE_RATE * 0.25): # less than 250ms
+        if len(audio_data) < (SAMPLE_RATE * 0.25):
             return
 
         peak = float(np.max(np.abs(audio_data)))
         rms = float(np.sqrt(np.mean(audio_data ** 2)))
-        if peak < 0.012 and rms < 0.004:
-            return # ambient background noise floor
+        if peak < 0.01 and rms < 0.003:
+            return  # ambient noise floor
 
         try:
-            segments, info = self.model.transcribe(
+            segments, _info = self.model.transcribe(
                 audio_data,
-                language="en",
+                language=LANGUAGE,
                 beam_size=3,
                 best_of=3,
                 vad_filter=True,
-                vad_parameters=dict(min_silence_duration_ms=400),
-                condition_on_previous_text=False
+                vad_parameters=dict(min_silence_duration_ms=250, speech_pad_ms=180),
+                condition_on_previous_text=False,
+                no_speech_threshold=0.55,
+                log_prob_threshold=-1.0,
+                without_timings=True,
             )
-            raw_text = " ".join(seg.text for seg in segments).strip()
-            if not raw_text:
+            raw_text = " ".join(seg.text for seg in segments)
+            cleaned = clean_transcript(raw_text)
+            if looks_like_hallucination(cleaned):
                 return
 
-            cleaned = re.sub(r"\s+", " ", raw_text).strip()
-            lower = cleaned.lower().strip(" .!?,")
-
-            if (
-                lower in HALLUCINATIONS
-                or len(lower) == 0
-                or lower.startswith("subtitles by")
-                or lower.startswith("subtitle by")
-                or lower.startswith("sous-titres")
-            ):
-                return
-
-            # Check if meta command
-            is_meta = any(lower == mc or lower.startswith(mc) for mc in META_COMMANDS)
-            is_control = (self.current_mode == "control") or is_meta
-
+            lower = cleaned.lower()
+            is_control = self.current_mode == "control"
             if is_control:
-                emit(f"CMD_B64:{to_b64(cleaned)}")
+                emit("CMD_B64:" + to_b64(cleaned))
             else:
-                emit(f"FINAL_B64:{to_b64(cleaned)}")
-        except Exception as e:
-            # Non-fatal transcription error
-            pass
+                emit("FINAL_B64:" + to_b64(cleaned))
+        except Exception as exc:
+            log_err(f"transcription failed: {exc}")
 
     def _process_audio_loop(self):
         state = "IDLE"
-        pre_roll = [] # circular buffer of 2 chunks (~200ms)
+        pre_roll = []  # ~200ms of audio before speech onset
         accumulated_chunks = []
         silence_count = 0
         last_level_time = time.time()
@@ -219,7 +286,6 @@ class WhisperHost:
             except queue.Empty:
                 continue
 
-            # Emit audio level for UI volume meter
             now = time.time()
             if now - last_level_time >= 0.08:
                 last_level_time = now
@@ -230,6 +296,7 @@ class WhisperHost:
             has_speech = self._is_speech_chunk(chunk)
 
             if state == "IDLE":
+                self._calibrate_noise(chunk)
                 if has_speech:
                     state = "SPEAKING"
                     accumulated_chunks = list(pre_roll)
@@ -247,12 +314,13 @@ class WhisperHost:
                 else:
                     silence_count += 1
 
-                # Check if pause reached or phrase duration limit
-                phrase_ready = (silence_count >= SILENCE_PAUSE_CHUNKS and len(accumulated_chunks) >= MIN_SPEECH_CHUNKS)
-                phrase_maxed = (len(accumulated_chunks) >= MAX_PHRASE_CHUNKS)
+                phrase_ready = (
+                    silence_count >= SILENCE_PAUSE_CHUNKS
+                    and len(accumulated_chunks) >= MIN_SPEECH_CHUNKS
+                )
+                phrase_maxed = len(accumulated_chunks) >= MAX_PHRASE_CHUNKS
 
                 if phrase_ready or phrase_maxed:
-                    # Finalize utterance
                     audio_to_transcribe = np.concatenate(accumulated_chunks, axis=0)
                     accumulated_chunks = []
                     silence_count = 0
@@ -260,11 +328,10 @@ class WhisperHost:
                     pre_roll = []
                     self._transcribe_audio(audio_to_transcribe)
 
-        # Flush any remaining speech on stop
+        # Flush speech still buffered when listening stops
         if state == "SPEAKING" and len(accumulated_chunks) >= MIN_SPEECH_CHUNKS:
             try:
-                audio_to_transcribe = np.concatenate(accumulated_chunks, axis=0)
-                self._transcribe_audio(audio_to_transcribe)
+                self._transcribe_audio(np.concatenate(accumulated_chunks, axis=0))
             except Exception:
                 pass
 
@@ -298,8 +365,9 @@ def main():
                 emit("PONG")
         except (KeyboardInterrupt, SystemExit):
             break
-        except Exception as e:
-            emit(f"ERR_B64:{to_b64(str(e))}")
+        except Exception as exc:
+            log_err(traceback.format_exc())
+            emit("ERR_B64:" + to_b64(str(exc)))
 
     host.stop_listening()
 

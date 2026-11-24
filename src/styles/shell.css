@@ -257,6 +257,15 @@
   font-size: 12px;
 }
 .dictation-ticker.is-live { border-color: var(--signal-emerald-border); }
+.dictation-ticker.is-error { border-color: rgba(248, 113, 113, 0.38); }
+.dictation-ticker.is-error .ticker-label { color: var(--signal-coral); }
+.ticker-engine {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
 .ticker-label {
   font-family: var(--font-mono);
   font-size: 10px;

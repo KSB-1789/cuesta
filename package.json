@@ -9,6 +9,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
+    "speech:setup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-speech-deps.ps1",
     "desktop:run": "npm run build && electron .",
     "desktop:win": "npm run build && electron-builder --win portable"
   },

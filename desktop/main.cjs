@@ -30,11 +30,7 @@ let mainWindow = null
 let hudWindow = null
 let chordProcess = null
 let actionWorkerProcess = null
-let speechWorkerProcess = null
-let currentSpeechEngine = null
-let isSpeechListening = false
 let currentHudMode = 'studio'
-let currentVoiceMode = 'dictation'
 const pendingUiListResolvers = []
 const pendingUiClickResolvers = []
 const pendingForegroundInfoResolvers = []
@@ -334,150 +330,27 @@ function sendToWorker(command) {
   return null
 }
 
-function startSpeechWorker(provider = 'whisper') {
-  if (!isWindows) return
-  const isLegacySapi = provider === 'windows-speech'
-  const targetEngine = isLegacySapi ? 'windows-speech' : 'whisper'
+const { createSpeechHost } = require('./speech-host.cjs')
 
-  if (speechWorkerProcess && currentSpeechEngine === targetEngine && !speechWorkerProcess.killed) {
-    return
-  }
+const speechHost = createSpeechHost({
+  isWindows,
+  powershell,
+  getWorkerPath,
+  broadcast,
+  log,
+  sendToWorker,
+})
 
-  if (speechWorkerProcess) {
-    try { speechWorkerProcess.stdin.write('QUIT\n') } catch {}
-    try { speechWorkerProcess.kill() } catch {}
-    speechWorkerProcess = null
-  }
-
-  currentSpeechEngine = targetEngine
-  try {
-    const scriptPath = getWorkerPath(isLegacySapi ? 'speech-worker.ps1' : 'whisper-worker.py')
-    if (isLegacySapi) {
-      speechWorkerProcess = spawn(powershell, ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath], { windowsHide: true })
-    } else {
-      const pythonCmd = process.env.PYTHON || 'python'
-      speechWorkerProcess = spawn(pythonCmd, ['-u', scriptPath], { windowsHide: true })
-    }
-    let lineBuffer = ''
-    speechWorkerProcess.stdout.on('data', (chunk) => {
-      lineBuffer += chunk.toString('utf8')
-      const lines = lineBuffer.split(/\r?\n/)
-      lineBuffer = lines.pop() ?? ''
-      for (const raw of lines) {
-        const line = raw.trim()
-        if (!line) continue
-        if (line === 'READY') {
-          log(`speech worker ready (${targetEngine})`)
-          setSpeechWorkerMode(currentVoiceMode)
-          continue
-        }
-        if (line === 'STATUS:listening') {
-          isSpeechListening = true
-          broadcast('cuesta:dictation:status', { state: 'listening', text: 'Listening… speak now.' })
-          continue
-        }
-        if (line === 'STATUS:off') {
-          isSpeechListening = false
-          broadcast('cuesta:dictation:status', { state: 'off', text: '' })
-          continue
-        }
-        if (line.startsWith('LEVEL:')) {
-          const level = parseInt(line.slice(6), 10) || 0
-          broadcast('cuesta:dictation:status', { state: 'listening', text: '', volume: level, isVolumeOnly: true })
-          continue
-        }
-        if (line.startsWith('INTERIM_B64:')) {
-          const spoken = Buffer.from(line.slice(12), 'base64').toString('utf8')
-          broadcast('cuesta:dictation:status', { state: 'listening', text: spoken, isInterim: true })
-          continue
-        }
-        if (line.startsWith('CMD_B64:')) {
-          const spoken = Buffer.from(line.slice(8), 'base64').toString('utf8').trim()
-          if (spoken) {
-            broadcast('cuesta:dictation:status', {
-              state: isSpeechListening ? 'listening' : 'done',
-              text: spoken,
-              rawText: spoken,
-              isFinal: true,
-              isCommand: true,
-            })
-          }
-          continue
-        }
-        if (line.startsWith('FINAL_B64:')) {
-          const spoken = Buffer.from(line.slice(10), 'base64').toString('utf8').trim()
-          if (spoken) {
-            broadcast('cuesta:dictation:status', {
-              state: isSpeechListening ? 'listening' : 'done',
-              text: spoken,
-              rawText: spoken,
-              isFinal: true,
-              isCommand: false,
-            })
-          }
-          continue
-        }
-        if (line.startsWith('ERR_B64:')) {
-          const errMsg = Buffer.from(line.slice(8), 'base64').toString('utf8')
-          isSpeechListening = false
-          log(`speech worker err: ${errMsg}`)
-          broadcast('cuesta:dictation:status', { state: 'error', text: errMsg })
-        }
-      }
-    })
-    speechWorkerProcess.stderr.on('data', (d) => log(`speech-worker stderr: ${d.toString().trim()}`))
-    speechWorkerProcess.on('error', (err) => {
-      log(`speech-worker process error: ${err.message}`)
-      broadcast('cuesta:dictation:status', {
-        state: 'error',
-        text: `Speech worker error (${targetEngine}): ${err.message}. Ensure Python 3.x is installed.`
-      })
-    })
-    speechWorkerProcess.on('close', () => {
-      isSpeechListening = false
-      speechWorkerProcess = null
-      currentSpeechEngine = null
-    })
-    log(`speech worker process spawned (${targetEngine})`)
-  } catch (err) {
-    log(`failed to start speech worker: ${err.message}`)
-  }
+function toggleDictation(provider) {
+  return speechHost.toggle(provider)
 }
 
 function setSpeechWorkerMode(mode) {
-  currentVoiceMode = mode === 'control' ? 'control' : 'dictation'
-  if (speechWorkerProcess && speechWorkerProcess.stdin && !speechWorkerProcess.killed) {
-    try {
-      speechWorkerProcess.stdin.write(currentVoiceMode === 'control' ? 'MODE:CONTROL\n' : 'MODE:DICTATION\n')
-    } catch {}
-  }
+  speechHost.setMode(mode)
 }
 
-function toggleDictation(provider) {
-  const activeProvider = provider || currentSpeechEngine || 'whisper'
-  if (!isWindows) return Promise.resolve({ ok: false, reason: 'Dictation is available in the Windows desktop build.' })
-  if (activeProvider === 'windows-voice-typing') {
-    return sendToWorker('VOICE_TYPING') || Promise.resolve({ ok: false, reason: 'Action worker offline.' })
-  }
-  const targetEngine = activeProvider === 'windows-speech' ? 'windows-speech' : 'whisper'
-  if (!speechWorkerProcess || !speechWorkerProcess.stdin || speechWorkerProcess.killed || currentSpeechEngine !== targetEngine) {
-    startSpeechWorker(targetEngine)
-    return Promise.resolve({
-      ok: false,
-      reason: targetEngine === 'whisper' ? 'Starting Whisper neural model — speak in ~2 seconds.' : 'Starting speech engine…'
-    })
-  }
-  try {
-    if (isSpeechListening) {
-      speechWorkerProcess.stdin.write('STOP\n')
-      return Promise.resolve({ ok: true, state: 'off' })
-    }
-    setSpeechWorkerMode(currentVoiceMode)
-    speechWorkerProcess.stdin.write('START\n')
-    return Promise.resolve({ ok: true, state: 'listening' })
-  } catch (err) {
-    return Promise.resolve({ ok: false, reason: err.message })
-  }
+function restartSpeechEngine() {
+  return speechHost.restart()
 }
 
 function pasteExternalText(text) {
@@ -712,6 +585,8 @@ app.whenReady().then(() => {
   ipcMain.handle('cuesta:device-cmd', (_event, payload) => runDeviceCommand(payload?.command))
   ipcMain.handle('cuesta:dictation:toggle', (_event, payload) => toggleDictation(payload?.provider))
   ipcMain.on('cuesta:dictation:mode', (_event, payload) => setSpeechWorkerMode(payload?.mode))
+  ipcMain.handle('cuesta:speech:status', () => speechHost.status())
+  ipcMain.handle('cuesta:speech:restart', () => restartSpeechEngine())
   ipcMain.handle('cuesta:clipboard:paste-text', (_event, payload) => pasteExternalText(payload?.text))
   ipcMain.handle('cuesta:app:launch', (_event, payload) => launchApp(payload.appId, payload.customPath))
   ipcMain.handle('cuesta:app:pick-exe', () => pickCustomExe())
@@ -780,7 +655,7 @@ app.whenReady().then(() => {
   if (isWindows) {
     startKeyboardHook()
     startActionWorker()
-    startSpeechWorker()
+    speechHost.start()
   }
   app.on('activate', () => mainWindow?.show())
   app.on('window-all-closed', () => {
@@ -790,10 +665,7 @@ app.whenReady().then(() => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
-  if (speechWorkerProcess) {
-    try { speechWorkerProcess.stdin.write('QUIT\n') } catch {}
-    speechWorkerProcess.kill()
-  }
+  speechHost.shutdown()
   if (actionWorkerProcess) {
     try { actionWorkerProcess.stdin.write('QUIT\n') } catch {}
     actionWorkerProcess.kill()

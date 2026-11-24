@@ -81,7 +81,7 @@ export interface HudStateSnapshot {
   activeLabel: string
   liveScore: number
   threshold: number
-  dictation: { state: string; text: string; isInterim?: boolean; volume?: number }
+  dictation: { state: string; text: string; isInterim?: boolean; volume?: number; engine?: string }
   notice: string
   gesturesPaused: boolean
   voiceMode: VoiceMode

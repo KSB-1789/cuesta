@@ -16,13 +16,16 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.egg-info/
+.pytest_cache/
 .venv/
 venv/
 env/
 
 # Environment and secrets
 .env
-.env.local
+.env.*
+!.env.example
 *.local
 
 # Logs and runtime databases
@@ -42,5 +45,10 @@ Thumbs.db
 coverage/
 scratch/
 
-# Agent tooling harness
+# Agent tooling harness and local machine state
 .agents/
+.freebuff/
+
+# Project documentation is always tracked (including agent guidelines)
+!CLAUDE.md
+!README.md

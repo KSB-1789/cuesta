@@ -3,7 +3,7 @@ import { DEFAULT_APPS, loadCustomApps, parseVoiceCommand, type ParsedIntent } fr
 import { formatDictatedTranscript, refineTranscriptWithAi, resolveControlIntentWithAi } from './dictation-format'
 import type { ActionKind, Settings, VoiceMode } from './types'
 
-export type DictationState = 'off' | 'listening' | 'transcribing' | 'done' | 'error'
+export type DictationState = 'off' | 'starting' | 'listening' | 'transcribing' | 'done' | 'error'
 
 export interface DictationPayload {
   state: DictationState
@@ -11,6 +11,7 @@ export interface DictationPayload {
   isInterim?: boolean
   isFinal?: boolean
   volume?: number
+  engine?: string
 }
 
 type DictationCallback = (payload: DictationPayload) => void
@@ -33,6 +34,9 @@ export class DictationService {
   private currentVolume = 0
   private lastText = ''
   private pendingAnalysis = false
+  private engine = 'whisper'
+  private lastState: DictationState = 'off'
+  private lastFinal = { text: '', at: 0 }
 
   constructor() {
     this.initRecognition()
@@ -175,7 +179,13 @@ export class DictationService {
   }
 
   private notify(payload: DictationPayload) {
-    this.callbacks.forEach((cb) => cb(payload))
+    this.lastState = payload.state
+    const full = payload.engine ? payload : { ...payload, engine: this.engine }
+    this.callbacks.forEach((cb) => cb(full))
+  }
+
+  public getEngine(): string {
+    return this.engine
   }
 
   public async toggle(): Promise<{ ok: boolean; state: DictationState }> {
@@ -188,18 +198,20 @@ export class DictationService {
   }
 
   public syncDesktopStatus(payload: DesktopDictationEvent, handleRawText = true) {
+    if (payload.engine) this.engine = payload.engine
+
     // Keep listening active across finalized utterances in continuous mode; only
     // 'off' and 'error' end the active session.
     if (payload.state === 'off' || payload.state === 'error') {
       this.isListening = false
-    } else if (payload.state === 'listening') {
+    } else if (payload.state === 'listening' || payload.state === 'starting') {
       this.isListening = true
     }
 
     if (payload.isVolumeOnly) {
       this.currentVolume = payload.volume ?? 0
       this.notify({
-        state: 'listening',
+        state: this.lastState === 'starting' ? 'starting' : 'listening',
         text: this.lastText,
         isInterim: true,
         volume: this.currentVolume,
@@ -208,6 +220,11 @@ export class DictationService {
     }
 
     if (payload.isFinal && payload.rawText && handleRawText) {
+      const key = payload.rawText.toLowerCase()
+      const now = Date.now()
+      // Guard against a duplicated delivery of the same utterance.
+      if (key === this.lastFinal.text && now - this.lastFinal.at < 500) return
+      this.lastFinal = { text: key, at: now }
       this.lastText = payload.rawText
       void this.processFinalSpeech(payload.rawText, true, Boolean(payload.isCommand))
       return
@@ -228,7 +245,11 @@ export class DictationService {
       window.cuestaDesktop.setDictationMode?.(this.voiceMode)
       const res = await window.cuestaDesktop.toggleDictation(this.provider)
       if (res.ok) {
-        if (res.state === 'listening') {
+        if (res.state === 'starting') {
+          this.isListening = true
+          this.lastText = 'Loading speech engine…'
+          this.notify({ state: 'starting', text: this.lastText, volume: 0 })
+        } else if (res.state === 'listening') {
           this.isListening = true
           this.lastText = this.voiceMode === 'control' ? 'Control Mode listening…' : 'Dictation listening…'
           this.notify({ state: 'listening', text: this.lastText, volume: 0 })
@@ -271,6 +292,10 @@ export class DictationService {
     this.isListening = false
     this.lastText = ''
     this.notify({ state: 'off', text: '' })
+  }
+
+  public handleEngineStatus(status: { engine?: string }): void {
+    if (status?.engine) this.engine = status.engine
   }
 
   private executeIntent(intent: ParsedIntent, rawPhrase: string): void {
@@ -448,22 +473,28 @@ export class DictationService {
         (typeof HTMLTextAreaElement !== 'undefined' && active instanceof HTMLTextAreaElement))
 
     if (isTextInput && active) {
-      let start = (active as any).value.length
-      let end = (active as any).value.length
+      const val = String((active as any).value ?? '')
+      let start = val.length
+      let end = val.length
       try {
-        start = (active as any).selectionStart ?? (active as any).value.length
-        end = (active as any).selectionEnd ?? (active as any).value.length
+        start = (active as any).selectionStart ?? val.length
+        end = (active as any).selectionEnd ?? val.length
       } catch {}
-      const val = (active as any).value
-      ;(active as any).value = val.substring(0, start) + (start > 0 ? ' ' : '') + trimmed + val.substring(end)
+
+      const before = val.slice(0, start)
+      // Never glue words together, and never add a space before punctuation or a new line.
+      const needsSpace = start > 0 && !/\s$/.test(before) && !/^[\s.,!?;:]/.test(trimmed)
+      const insert = needsSpace ? ` ${trimmed}` : trimmed
+      ;(active as any).value = before + insert + val.slice(end)
       try {
-        ;(active as any).selectionStart = (active as any).selectionEnd = start + trimmed.length + (start > 0 ? 1 : 0)
+        ;(active as any).selectionStart = (active as any).selectionEnd = start + insert.length
       } catch {}
       active.dispatchEvent(new Event('input', { bubbles: true }))
       active.dispatchEvent(new Event('change', { bubbles: true }))
       this.notify({ state: this.isListening ? 'listening' : 'done', text: trimmed, isFinal: true })
     } else if (allowExternalPaste && typeof window !== 'undefined' && desktopAvailable() && window.cuestaDesktop) {
-      void window.cuestaDesktop.pasteExternalText(`${trimmed} `)
+      const payload = /[\s\n]$/.test(trimmed) ? trimmed : `${trimmed} `
+      void window.cuestaDesktop.pasteExternalText(payload)
       this.notify({ state: this.isListening ? 'listening' : 'done', text: `Typed: ${trimmed}`, isFinal: true })
     }
 

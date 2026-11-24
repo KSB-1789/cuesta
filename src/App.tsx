@@ -97,6 +97,7 @@ function StandaloneHudApp() {
               text: d.text || prev.dictation.text,
               isInterim: d.isInterim,
               volume: d.volume ?? prev.dictation.volume,
+              engine: prev.dictation.engine,
             },
       }))
     })
@@ -158,7 +159,8 @@ function StudioApp({ initialDemoMode }: { initialDemoMode: boolean }) {
     text: string
     isInterim?: boolean
     volume?: number
-  }>({ state: 'off', text: '', volume: 0 })
+    engine?: string
+  }>({ state: 'off', text: '', volume: 0, engine: 'whisper' })
 
   const [sensorMode, setSensorMode] = useState<'camera' | 'demo'>(initialDemoMode ? 'demo' : 'camera')
   const [cameraState, setCameraState] = useState<'idle' | 'requesting' | 'ready' | 'blocked'>('idle')
@@ -211,6 +213,17 @@ function StudioApp({ initialDemoMode }: { initialDemoMode: boolean }) {
     dictationService.setVoiceMode(settings.voiceMode)
     dictationService.setAiConfig(settings.ollamaEnabled, settings.ollamaModel)
   }, [settings])
+
+  useEffect(() => {
+    if (!desktopAvailable()) return
+    window.cuestaDesktop
+      ?.getSpeechStatus?.()
+      .then((status) => {
+        dictationService.handleEngineStatus(status)
+        setDictationState((prev) => ({ ...prev, engine: status.engine }))
+      })
+      .catch(() => undefined)
+  }, [])
 
   useEffect(() => {
     if (!desktopAvailable()) return
@@ -281,6 +294,10 @@ function StudioApp({ initialDemoMode }: { initialDemoMode: boolean }) {
     const unsubDesktopDictation = window.cuestaDesktop?.onDictationStatus((payload) => {
       dictationService.syncDesktopStatus(payload, true)
     })
+    const unsubSpeechStatus = window.cuestaDesktop?.onSpeechStatus((status) => {
+      dictationService.handleEngineStatus(status)
+      setDictationState((prev) => ({ ...prev, engine: status.engine }))
+    })
     const unsubMode = window.cuestaDesktop?.onWindowModeChanged((mode) => {
       setHudMode(mode)
     })
@@ -303,6 +320,7 @@ function StudioApp({ initialDemoMode }: { initialDemoMode: boolean }) {
       dictationService.setVoiceModeHandler(null)
       unsub()
       unsubDesktopDictation?.()
+      unsubSpeechStatus?.()
       unsubMode?.()
       unsubHudCmd?.()
       unsubShortcut?.()

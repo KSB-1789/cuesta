@@ -166,6 +166,87 @@ describe('dictation service', () => {
     expect(mockInput.value).toBe('Open calculator.')
   })
 
+  it('inserts dictated text with correct spacing, newlines, and punctuation', async () => {
+    const mockInput = {
+      value: 'Header\n',
+      selectionStart: 7,
+      selectionEnd: 7,
+      dispatchEvent: vi.fn(),
+    }
+    ;(globalThis as any).HTMLInputElement = function () {}
+    Object.setPrototypeOf(mockInput, (globalThis as any).HTMLInputElement.prototype)
+    ;(globalThis as any).document = { activeElement: mockInput }
+    ;(globalThis as any).window = { dispatchEvent: vi.fn() }
+    ;(globalThis as any).CustomEvent = function (name: string, detail: any) {
+      return { name, detail }
+    }
+    ;(globalThis as any).Event = function (name: string) {
+      return { name }
+    }
+
+    const service = new DictationService()
+    service.setAiConfig(false, '')
+    service.setVoiceMode('dictation')
+
+    await service.processFinalSpeech('second paragraph')
+    expect(mockInput.value).toBe('Header\nSecond paragraph')
+
+    // Appending after plain text adds exactly one separating space.
+    mockInput.value = 'Hello'
+    mockInput.selectionStart = 5
+    mockInput.selectionEnd = 5
+    service.insertTranscribedText('world')
+    expect(mockInput.value).toBe('Hello world')
+
+    // Punctuation is appended without an extra space.
+    service.insertTranscribedText('.')
+    expect(mockInput.value).toBe('Hello world.')
+  })
+
+  it('ignores a duplicate delivery of the same final utterance', async () => {
+    const mockInput = {
+      value: '',
+      selectionStart: 0,
+      selectionEnd: 0,
+      dispatchEvent: vi.fn(),
+    }
+    ;(globalThis as any).HTMLInputElement = function () {}
+    Object.setPrototypeOf(mockInput, (globalThis as any).HTMLInputElement.prototype)
+    ;(globalThis as any).document = { activeElement: mockInput }
+    ;(globalThis as any).window = { dispatchEvent: vi.fn() }
+    ;(globalThis as any).CustomEvent = function (name: string, detail: any) {
+      return { name, detail }
+    }
+    ;(globalThis as any).Event = function (name: string) {
+      return { name }
+    }
+
+    const service = new DictationService()
+    service.setAiConfig(false, '')
+    service.setVoiceMode('dictation')
+
+    const final = { state: 'listening', text: 'Hello there', rawText: 'Hello there', isFinal: true }
+    service.syncDesktopStatus(final)
+    service.syncDesktopStatus(final)
+
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    expect(mockInput.value).toBe('Hello there')
+  })
+
+  it('exposes the starting state and active fallback engine', () => {
+    const service = new DictationService()
+    const seen: Array<{ state: string; engine?: string }> = []
+    service.subscribe((payload) => seen.push({ state: payload.state, engine: payload.engine }))
+
+    service.syncDesktopStatus({
+      state: 'starting',
+      text: 'Loading speech engine…',
+      engine: 'windows-speech',
+    })
+
+    expect(seen[0]).toEqual({ state: 'starting', engine: 'windows-speech' })
+  })
+
   it('defaults to whisper neural speech provider and migrates legacy windows-speech in settings', () => {
     const service = new DictationService()
     // Service provider defaults to whisper

@@ -37,6 +37,8 @@ npm run desktop:run
 
 ## Windows permissions and speech
 
-The first run needs camera permission. Dictation uses the Windows `System.Speech` recognition engine and the default microphone. Cuesta uses a native Windows keyboard hook because Electron’s normal global shortcut API cannot bind a modifier-only chord. If Windows Speech Recognition or the selected language pack is unavailable, Cuesta reports that instead of silently pretending dictation worked.
+The first run needs camera permission. Dictation prefers the local neural engine (`faster-whisper`, `small.en`, int8 CPU). If Python or `faster-whisper` is missing, the host transparently falls back to the built-in Windows `System.Speech` recognizer, and the live engine is reported through `cuesta:speech:status`. Run `npm run speech:setup` to install the neural engine.
+
+Cuesta uses a native Windows keyboard hook because Electron’s normal global shortcut API cannot bind a modifier-only chord. If neither speech engine can start, the error is surfaced in the UI with an actionable reason instead of silently pretending dictation worked.
 
 The Windows bridge is intentionally explicit: ordinary browser pages cannot control arbitrary foreground applications. Cuesta’s desktop build is what provides that capability. The OS may still block elevated/admin windows or secure surfaces; those are Windows security boundaries, not Cuesta failures.

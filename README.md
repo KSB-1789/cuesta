@@ -11,8 +11,9 @@ Instead of forcing users into rigid pre-programmed gestures ("open mouth wide to
 ## Key Capabilities
 
 ### 1. Offline Neural Whisper Dictation
-- **State-of-the-Art Local ASR:** Powered by `faster-whisper` (`Systran/faster-whisper-small` running quantized `int8` on CPU) with zero cloud dependencies and sub-200ms latency.
-- **Continuous Fluid Dictation:** Captures uncompressed 16 kHz mono audio via `sounddevice`, utilizing an energy-based Voice Activity Detection (VAD) filter with a 200 ms pre-roll ring buffer so initial consonants are never clipped.
+- **State-of-the-Art Local ASR:** Powered by `faster-whisper` (`small.en`, quantized `int8` on CPU) with zero cloud dependencies.
+- **Graceful Engine Fallback:** If Python or `faster-whisper` is unavailable, Cuesta automatically switches to the built-in Windows Speech engine instead of failing. The live engine is shown in the top bar and in Settings.
+- **Continuous Fluid Dictation:** Captures uncompressed 16 kHz mono audio via `sounddevice`, with an adaptive noise-floor gate and a 200 ms pre-roll ring buffer so initial consonants are never clipped.
 - **Natural Spoken Punctuation:** Automatically formats spoken punctuation commands (`"period"`, `"comma"`, `"question mark"`, `"new line"`, `"new paragraph"`), strips hesitation fillers (`"um"`, `"uh"`), and enforces sentence capitalization.
 - **Preserved Windows Clipboard:** Pastes text directly into any active Windows application (Notepad, Word, Discord, Browser, VS Code) via `Ctrl+V`, seamlessly restoring your previous clipboard content after 240 ms.
 - **Optional Local LLM Post-Processing:** Optionally routes utterances through a local Ollama instance (`qwen2.5:3b`) for context-aware grammar refinement and punctuation without internet access.
@@ -61,8 +62,8 @@ MediaPipe Face Landmarker (Local WASM)   sounddevice (16kHz Mono float32)
       │                                       │
 55 Blendshapes + Head Pose (Pitch/Yaw/Roll)   Energy VAD + 200ms Pre-roll Ring Buffer
       │                                       │
-Baseline Normalizer (3s Neutral)              faster-whisper (small, int8 CPU)
-      │                                       │
+Baseline Normalizer (3s Neutral)              faster-whisper (small.en, int8 CPU)
+      │                                       │  ↳ Windows Speech fallback
 Cosine Prototype Matcher + Symmetry Gate      Deterministic Punctuation & Formatting
       │                                       │ (Optional: Ollama qwen2.5:3b)
       ▼                                       ▼
@@ -79,7 +80,7 @@ Action Worker (desktop/action-worker.ps1) ───► Active Window Paste (Ctrl
 ### Requirements
 - **Operating System:** Windows 10 or Windows 11 (64-bit)
 - **Node.js:** v18.0.0 or higher
-- **Python:** v3.10 to v3.14 (64-bit)
+- **Python (optional):** v3.10 to v3.14 (64-bit) — only for the neural Whisper engine. Without it, Cuesta uses Windows Speech.
 - **Hardware:** Standard webcam and microphone
 
 ### 1. Install Node Dependencies
@@ -87,11 +88,17 @@ Action Worker (desktop/action-worker.ps1) ───► Active Window Paste (Ctrl
 npm install
 ```
 
-### 2. Install Python Speech Dependencies
+### 2. Optional: Install the Neural Speech Dependencies
 ```powershell
-pip install faster-whisper sounddevice numpy
+npm run speech:setup
 ```
-*(On first launch, `faster-whisper` will automatically cache the `Systran/faster-whisper-small` model locally in `~/.cache/huggingface/hub/` for offline execution).*
+This installs `faster-whisper`, `sounddevice`, and `numpy`, then downloads and warms the `small.en` model (about 460 MB, cached once for offline use). If you skip this step, Cuesta still dictates through the built-in Windows Speech engine and says so in Settings.
+
+To override the model or language:
+```powershell
+$env:CUESTA_WHISPER_MODEL="base.en"
+$env:CUESTA_WHISPER_LANGUAGE="en"
+```
 
 ### 3. Run the Desktop Application
 ```powershell
@@ -116,6 +123,16 @@ Open `http://localhost:5173/?demo` in Chrome or Edge (Web Speech API will be use
 
 ---
 
+## Dictation Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `Windows Speech` shows as the active engine | Python or `faster-whisper` not installed | Run `npm run speech:setup`, then press **Retry Whisper** in Settings |
+| First `Ctrl+Win` shows “Loading Whisper model…” for several seconds | First-run model download | Wait once; later launches load from the local cache |
+| Nothing is transcribed and the meter stays at zero | Windows default microphone is muted or wrong | Set the correct input device in Windows Sound settings, then restart Cuesta |
+| Text lands in the wrong place | The target window lost focus | Click the target field before speaking; Cuesta pastes into the foreground app |
+| Commands like “open notepad” do nothing | Voice Mode is set to Dictation | Switch to **Control** mode in the top bar or the HUD |
+
 ## Testing & Quality Assurance
 The codebase includes a comprehensive Vitest unit test suite covering signal detection, head pointer mathematics, app registry intent parsing, dictation formatting, and settings migration:
 
@@ -131,9 +148,20 @@ npm run build
 
 ---
 
+## LaunchPad Hacks 2026 Submission Notes
+
+Cuesta was finished for [LaunchPad Hacks](https://launchpad-hacks.devpost.com/) (submission deadline December 4, 2026). What to show in a 2–3 minute demo:
+
+1. **Personal switch (40s):** calibrate a neutral face, teach a brow raise three times, then trigger the saved switch.
+2. **Dictation (40s):** press `Ctrl+Win`, dictate a sentence with spoken punctuation, and show it pasted into Notepad.
+3. **Graceful fallback (30s):** open Settings and show the live speech engine, model, and Python status.
+4. **Control mode + HUD (30s):** say “open calculator” or “snap left”, then drop into the floating HUD with `Shift+Win`.
+
+Third-party work credited: MediaPipe Tasks Vision (Apache-2.0), faster-whisper/CTranslate2 (MIT), React, Vite, Electron, lucide-react, and the Windows UI Automation API. AI assistance was used for implementation and documentation; all product behavior is locally verifiable.
+
 ## Privacy & Security
 
-- **Zero Cloud Video/Audio Ingestion:** All video frames are processed exclusively inside local WebAssembly memory and discarded immediately after blendshape extraction. Audio is processed by the resident Python Whisper process directly on your CPU.
+- **Zero Cloud Video/Audio Ingestion:** All video frames are processed exclusively inside local WebAssembly memory and discarded immediately after blendshape extraction. Audio is processed locally by the resident Python Whisper process, or by Windows Speech when the neural engine is unavailable.
 - **No Keystroke Logging:** The low-level keyboard hook monitors specifically for modifier chords (`Ctrl+Win` and `Shift+Win`) without intercepting or capturing standard alphanumeric typing.
 - **Sandboxed Execution:** Application launching is restricted to approved, validated Windows binaries or user-selected local paths with strict path sanitization. Arbitrary shell command strings are prohibited.
 - **Portability:** Profiles and switch weights are saved locally in the browser's `localStorage` and can be exported/imported as standard JSON.

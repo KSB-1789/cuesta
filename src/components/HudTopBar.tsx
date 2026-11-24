@@ -17,7 +17,7 @@ import { VoiceWaveform } from './VoiceWaveform'
 
 interface HudTopBarProps {
   cameraState: string
-  dictationState: { state: string; text: string; volume?: number }
+  dictationState: { state: string; text: string; volume?: number; engine?: string }
   pointerEnabled: boolean
   gesturesPaused: boolean
   voiceMode: VoiceMode
@@ -47,6 +47,9 @@ export function HudTopBar({
   onRecenterPointer,
 }: HudTopBarProps) {
   const isListening = dictationState.state === 'listening'
+  const isStarting = dictationState.state === 'starting'
+  const isErrored = dictationState.state === 'error'
+  const engineLabel = dictationState.engine === 'windows-speech' ? 'WIN SPEECH' : 'WHISPER'
 
   return (
     <header className="hud-top-bar">
@@ -70,10 +73,19 @@ export function HudTopBar({
 
       <div className="hud-top-center">
         {dictationState.text && (
-          <div className={`dictation-ticker ${isListening ? 'is-live' : ''}`}>
-            <VoiceWaveform active={isListening} volume={dictationState.volume} />
-            <span className="ticker-label">{voiceMode === 'control' ? 'CTRL' : isListening ? 'DICT' : 'DONE'}</span>
+          <div
+            className={`dictation-ticker ${isListening || isStarting ? 'is-live' : ''} ${
+              isErrored ? 'is-error' : ''
+            }`}
+          >
+            <VoiceWaveform active={isListening || isStarting} volume={dictationState.volume} />
+            <span className="ticker-label">
+              {isStarting ? 'LOAD' : voiceMode === 'control' ? 'CTRL' : isListening ? 'DICT' : isErrored ? 'ERR' : 'DONE'}
+            </span>
             <span className="ticker-text">{dictationState.text}</span>
+            <span className="ticker-engine" title={`Active speech engine: ${engineLabel}`}>
+              {engineLabel}
+            </span>
           </div>
         )}
       </div>

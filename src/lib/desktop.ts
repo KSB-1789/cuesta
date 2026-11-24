@@ -14,12 +14,28 @@ export type HudCommand =
 export interface DesktopDictationEvent {
   state: string
   text: string
+  engine?: string
   rawText?: string
   isCommand?: boolean
   isInterim?: boolean
   isFinal?: boolean
   isVolumeOnly?: boolean
   volume?: number
+}
+
+export type SpeechEngineState = 'idle' | 'loading' | 'ready' | 'listening' | 'starting' | 'error'
+
+export interface SpeechEngineStatus {
+  engine: 'whisper' | 'windows-speech' | 'windows-voice-typing'
+  state: SpeechEngineState
+  model: string
+  language?: string
+  fallback: boolean
+  detail: string
+  listening?: boolean
+  python?: string | null
+  depsReady?: boolean
+  probeDetail?: string
 }
 
 export interface OllamaStatus {
@@ -43,6 +59,9 @@ declare global {
       runDeviceCommand: (command: DeviceCommand) => Promise<{ ok: boolean; reason?: string }>
       toggleDictation: (provider?: string) => Promise<{ ok: boolean; reason?: string; state?: string }>
       setDictationMode: (mode: VoiceMode) => void
+      getSpeechStatus: () => Promise<SpeechEngineStatus>
+      restartSpeechEngine: () => Promise<{ ok: boolean; reason?: string }>
+      onSpeechStatus: (callback: (payload: SpeechEngineStatus) => void) => (() => void) | void
       pasteExternalText: (text: string) => Promise<{ ok: boolean }>
       onDictationStatus: (callback: (payload: DesktopDictationEvent) => void) => (() => void) | void
       launchApp: (appId: string, customPath?: string) => Promise<{ ok: boolean; reason?: string; state?: string }>

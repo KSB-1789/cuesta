@@ -6,6 +6,13 @@ contextBridge.exposeInMainWorld('cuestaDesktop', {
   runDeviceCommand: (command) => ipcRenderer.invoke('cuesta:device-cmd', { command }),
   toggleDictation: (provider) => ipcRenderer.invoke('cuesta:dictation:toggle', { provider }),
   setDictationMode: (mode) => ipcRenderer.send('cuesta:dictation:mode', { mode }),
+  getSpeechStatus: () => ipcRenderer.invoke('cuesta:speech:status'),
+  restartSpeechEngine: () => ipcRenderer.invoke('cuesta:speech:restart'),
+  onSpeechStatus: (callback) => {
+    const handler = (_event, payload) => callback(payload)
+    ipcRenderer.on('cuesta:speech:status', handler)
+    return () => ipcRenderer.removeListener('cuesta:speech:status', handler)
+  },
   pasteExternalText: (text) => ipcRenderer.invoke('cuesta:clipboard:paste-text', { text }),
   onDictationStatus: (callback) => {
     const handler = (_event, payload) => callback(payload)

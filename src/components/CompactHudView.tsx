@@ -23,7 +23,7 @@ interface CompactHudViewProps {
   pointerEnabled: boolean
   gesturesPaused?: boolean
   voiceMode?: VoiceMode
-  dictationState: { state: string; text: string; isInterim?: boolean; volume?: number }
+  dictationState: { state: string; text: string; isInterim?: boolean; volume?: number; engine?: string }
   armedCount?: number
   notice?: string
   isSeparateWindow?: boolean
@@ -58,6 +58,8 @@ export function CompactHudView({
   onTriggerActive,
 }: CompactHudViewProps) {
   const isListening = dictationState.state === 'listening'
+  const isStarting = dictationState.state === 'starting'
+  const engineLabel = dictationState.engine === 'windows-speech' ? 'WIN SPEECH' : 'WHISPER'
   const threshold = propThreshold ?? activeProfile?.sensitivity ?? 0.54
   const scorePercent = Math.min(100, Math.round(liveScore * 100))
   const isTriggered = !gesturesPaused && liveScore >= threshold
@@ -65,7 +67,7 @@ export function CompactHudView({
     ? 'Gestures Paused'
     : activeLabel || (armedCount > 1 ? `${armedCount} Armed` : (activeProfile?.name ?? 'Standby'))
 
-  const showDrawer = Boolean((isListening && dictationState.text) || notice)
+  const showDrawer = Boolean(((isListening || isStarting) && dictationState.text) || notice || dictationState.state === 'error')
   const dragOriginRef = useRef<{ x: number; y: number } | null>(null)
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
@@ -185,8 +187,8 @@ export function CompactHudView({
           onClick={onToggleDictation}
           title={`Toggle ${voiceMode === 'control' ? 'Control' : 'Dictation'} (Ctrl + Win)`}
         >
-          {isListening ? <VoiceWaveform active volume={dictationState.volume} /> : <Mic size={12} />}
-          <span>{isListening ? 'Stop' : voiceMode === 'control' ? 'Cmd' : 'Dictate'}</span>
+          {isListening || isStarting ? <VoiceWaveform active volume={dictationState.volume} /> : <Mic size={12} />}
+          <span>{isStarting ? 'Load…' : isListening ? 'Stop' : voiceMode === 'control' ? 'Cmd' : 'Dictate'}</span>
         </button>
 
         {activeProfile && (
@@ -213,11 +215,14 @@ export function CompactHudView({
 
       {showDrawer && (
         <div className="hud-live-drawer" role="status">
-          {isListening && (
+          {(isListening || isStarting || dictationState.state === 'error') && dictationState.text && (
             <div className="hud-drawer-row">
-              <span className="status-lamp active" />
-              <span className="hud-drawer-tag">{voiceMode === 'control' ? 'CTRL' : 'DICT'}</span>
+              <span className={`status-lamp ${isListening ? 'active' : ''}`} />
+              <span className="hud-drawer-tag">
+                {isStarting ? 'LOAD' : dictationState.state === 'error' ? 'ERR' : voiceMode === 'control' ? 'CTRL' : 'DICT'}
+              </span>
               <span className="hud-drawer-text">{dictationState.text}</span>
+              <span className="hud-drawer-engine">{engineLabel}</span>
             </div>
           )}
           {notice && (!isListening || !notice.startsWith('Dictated:')) && (

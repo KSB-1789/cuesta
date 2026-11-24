@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   ExternalLink,
   Plus,
@@ -11,6 +11,7 @@ import {
   FolderOpen,
   AppWindow,
   Mic,
+  RefreshCw,
 } from 'lucide-react'
 import type { Settings, SwitchProfile } from '../lib/types'
 import {
@@ -20,7 +21,7 @@ import {
   saveCustomApps,
   type AppDescriptor,
 } from '../lib/app-registry'
-import { desktopAvailable, launchDesktopApp } from '../lib/desktop'
+import { desktopAvailable, launchDesktopApp, type SpeechEngineStatus } from '../lib/desktop'
 
 interface SettingsPageProps {
   settings: Settings
@@ -46,6 +47,77 @@ export function SettingsPage({
   const [newAppPath, setNewAppPath] = useState('')
   const [newAppTriggers, setNewAppTriggers] = useState('')
   const [addError, setAddError] = useState('')
+  const [speech, setSpeech] = useState<SpeechEngineStatus | null>(null)
+  const [probing, setProbing] = useState(false)
+
+  useEffect(() => {
+    if (!desktopAvailable()) return
+    let cancelled = false
+
+    const read = () => {
+      setProbing(true)
+      window.cuestaDesktop
+        ?.getSpeechStatus?.()
+        .then((status) => {
+          if (!cancelled) setSpeech(status)
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          if (!cancelled) setProbing(false)
+        })
+    }
+
+    read()
+    const unsub = window.cuestaDesktop?.onSpeechStatus((status) => {
+      setSpeech((prev) => ({ ...(prev ?? status), ...status }))
+    })
+    return () => {
+      cancelled = true
+      unsub?.()
+    }
+  }, [])
+
+  const engineName =
+    speech?.engine === 'windows-speech'
+      ? 'Windows Speech'
+      : speech?.engine === 'windows-voice-typing'
+      ? 'Windows Voice Typing'
+      : 'Whisper Neural'
+  const engineStateClass =
+    speech?.state === 'error'
+      ? 'is-bad'
+      : speech?.state === 'loading' || speech?.state === 'starting'
+      ? 'is-warn'
+      : speech?.state === 'ready' || speech?.state === 'listening'
+      ? 'is-ok'
+      : ''
+  const engineStateLabel =
+    speech?.state === 'error'
+      ? 'Needs attention'
+      : speech?.state === 'loading'
+      ? 'Loading model…'
+      : speech?.state === 'starting'
+      ? 'Starting…'
+      : speech?.state === 'listening'
+      ? 'Listening'
+      : speech?.state === 'ready'
+      ? 'Ready'
+      : 'Standby'
+
+  async function recheckSpeech() {
+    setProbing(true)
+    try {
+      const status = await window.cuestaDesktop?.getSpeechStatus?.()
+      if (status) setSpeech(status)
+    } finally {
+      setProbing(false)
+    }
+  }
+
+  async function retryWhisper() {
+    await window.cuestaDesktop?.restartSpeechEngine?.()
+    window.setTimeout(() => void recheckSpeech(), 600)
+  }
 
   async function handlePickExe() {
     if (window.cuestaDesktop?.pickCustomExe) {
@@ -239,6 +311,64 @@ export function SettingsPage({
               <option value="windows-voice-typing">Windows Voice Typing (Win+H)</option>
               <option value="browser-speech">Browser Web Speech (Chrome / Edge)</option>
             </select>
+
+            {desktopAvailable() ? (
+              <div className="speech-health">
+                <div className="health-row">
+                  <span className="health-key">Active engine</span>
+                  <span className={`health-value ${engineStateClass}`}>
+                    <span className="health-dot" />
+                    {engineName}
+                  </span>
+                </div>
+                <div className="health-row">
+                  <span className="health-key">Status</span>
+                  <span className={`health-value ${engineStateClass}`}>{engineStateLabel}</span>
+                </div>
+                <div className="health-row">
+                  <span className="health-key">Whisper model</span>
+                  <span className="health-value">{speech?.model || 'small.en'}</span>
+                </div>
+                <div className="health-row">
+                  <span className="health-key">Python runtime</span>
+                  <span className={`health-value ${speech?.depsReady ? 'is-ok' : 'is-bad'}`}>
+                    {speech?.depsReady ? 'Installed' : 'Not detected'}
+                  </span>
+                </div>
+
+                {speech?.detail && <p className="health-hint">{speech.detail}</p>}
+
+                {!speech?.depsReady && (
+                  <p className="health-hint">
+                    Dictation works through the built-in Windows Speech fallback. Install the neural model
+                    for higher accuracy:
+                    <code className="code-line">npm run speech:setup</code>
+                  </p>
+                )}
+
+                <div className="row-inline">
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => void recheckSpeech()}
+                    disabled={probing}
+                  >
+                    <RefreshCw size={12} />
+                    <span>{probing ? 'Checking…' : 'Recheck setup'}</span>
+                  </button>
+                  {!speech?.depsReady && (
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => void retryWhisper()}>
+                      <span>Retry Whisper</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="health-hint">
+                Browser preview uses the Web Speech API. Launch the Windows desktop build for local Whisper
+                dictation.
+              </p>
+            )}
 
             <div className="add-app-form">
               <label className="checkbox-inline">
